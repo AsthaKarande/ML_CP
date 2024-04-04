@@ -1,0 +1,76 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import LabelEncoder
+from imblearn.over_sampling import RandomOverSampler
+from sklearn.metrics import accuracy_score
+
+# Read the CSV file
+f = pd.read_csv(r"C:\Users\Astha M Karande\Desktop\ML_CP\fraud_oracle2.csv")
+
+# Apply label encoding for categorical variables
+label_encoder = LabelEncoder()
+categorical_columns = ['VehiclePrice', 'Days_Policy_Accident', 'PastNumberOfClaims', 
+                       'AgeOfVehicle', 'AgeOfPolicyHolder', 'NumberOfSuppliments', 
+                       'AddressChange_Claim', 'NumberOfCars', 'PolicyType', 
+                       'WeekOfMonthClaimed', 'Sex', 'FraudFound_P', 'MaritalStatus',
+                       'Make', 'AccidentArea', 'MonthClaimed', 'VehicleCategory',
+                       'Fault', 'PoliceReportFiled', 'WitnessPresent', 'AgentType',
+                       'BasePolicy', 'Days_Policy_Claim']
+
+for column in categorical_columns:
+    f[column] = label_encoder.fit_transform(f[column])
+
+missing_values = f.isna().sum()
+print("Missing Values:")
+print(missing_values)
+
+# Before Oversampling
+print("\nBefore OverSampling:")
+target_counts = f['FraudFound_P'].value_counts()
+print(target_counts)
+
+# Dataset shuffle
+f = f.sample(frac=1, random_state=123)
+
+# ROSE for oversampling
+ros = RandomOverSampler(sampling_strategy=0.5, random_state=123)
+X_resampled, y_resampled = ros.fit_resample(f.drop(columns=['FraudFound_P']), f['FraudFound_P'])
+f = pd.concat([X_resampled, y_resampled], axis=1)
+
+# Data partition
+X_train, X_test, y_train, y_test = train_test_split(f.drop(columns=['FraudFound_P']), f['FraudFound_P'], test_size=0.25, random_state=123)
+
+# Decision Tree Algorithm
+dt_model = DecisionTreeClassifier()
+dt_model.fit(X_train, y_train)
+dt_predictions = dt_model.predict(X_test)
+dt_conf_matrix = confusion_matrix(dt_predictions, y_test)
+print("Decision Tree Confusion Matrix:")
+print(dt_conf_matrix)
+dt_accuracy = accuracy_score(y_test, dt_predictions)
+print("Decision Tree Accuracy:", dt_accuracy*100)
+
+# Random Forest Algorithm
+rf_model = RandomForestClassifier(n_estimators=700, max_features=6, random_state=123)
+rf_model.fit(X_train, y_train)
+rf_predictions = rf_model.predict(X_test)
+rf_conf_matrix = confusion_matrix(rf_predictions, y_test)
+print("Random Forest Confusion Matrix:")
+print(rf_conf_matrix)
+rf_accuracy = accuracy_score(y_test, rf_predictions)
+print("Random Forest Accuracy:", rf_accuracy*100)
+
+
+# Naive Bayes Algorithm
+nb_model = GaussianNB()
+nb_model.fit(X_train, y_train)
+nb_predictions = nb_model.predict(X_test)
+nb_conf_matrix = confusion_matrix(nb_predictions, y_test)
+print("Naive Bayes Confusion Matrix:")
+print(nb_conf_matrix)
+nb_accuracy = accuracy_score(y_test, nb_predictions)
+print("Naive Bayes Accuracy:", nb_accuracy*100)
